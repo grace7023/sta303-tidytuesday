@@ -1,0 +1,114 @@
+---
+title: "Tidy Tuesday - Week 1"
+author: "Grace Hu"
+date: "20/02/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(ggthemes)
+```
+
+# Task at hand
+
+For this week, I will be looking at the #DuBoisChallenge taken from [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-02-16/readme.md). I would like to complete challenges 1 and 3.
+
+
+```{r getdata, message = FALSE, echo=FALSE, include=FALSE}
+# Get the Data
+
+# Read in with tidytuesdayR package 
+# Install from CRAN via: install.packages("tidytuesdayR")
+# This loads the readme and all the datasets for the week of interest
+
+# Or read in the data manually
+
+georgia_pop_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/georgia_pop.csv')
+census_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/census.csv')
+furniture_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/furniture.csv')
+city_rural_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/city_rural.csv')
+income_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/income.csv')
+freed_slaves_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/freed_slaves.csv')
+occupation_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/occupation.csv')
+conjugal_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-16/conjugal.csv')
+```
+
+
+
+# Challenge 01
+
+Comparative Increase of White and Colored Population in Georgia
+
+## Data Wrangling
+
+```{r ch_01_data_w}
+
+georgia_pop <- georgia_pop_raw %>%
+  pivot_longer(!Year, names_to = "Group", values_to = "Percentage") %>%
+  mutate(Group = as_factor(Group))
+
+```
+
+
+## Data Visualization
+
+```{r ch_01_data_v, fig.width=14, fig.height=8}
+
+options(repr.plot.width=500, repr.plot.height=800)
+
+ggplot(data = georgia_pop, aes(x = Year, y = Percentage, group = Group)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(breaks = seq(1790, 1890, by = 10)) +
+  scale_y_reverse(breaks = seq(0, 100, by = 5)) +
+  labs(
+    title = "Comparative Increase of White and Colored\nPopulation in Georgia",
+    xlab = "Year",
+    ylab = "Percentage"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),
+    panel.border = element_rect(colour = "red", fill = NA),
+    panel.grid.major = element_line(size = 0.1, linetype = 'solid', colour = "red"), 
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    plot.background = element_rect(fill = "#e4cdb0"),
+    aspect.ratio = 3/2) +
+  coord_flip()
+
+```
+
+
+# Challenge 03
+
+Occupations of Negroes and Whites in Georgia
+
+## Data Wrangling
+
+```{r ch_03_data_w}
+
+occupation <- occupation_raw %>%
+  mutate(Group = as_factor(Group), Occupation = as_factor(Occupation))
+
+levels(occupation$Occupation)
+
+```
+
+```{r ch_03_data_v}
+
+ggplot(data = occupation, aes(x = Occupation, y = Percentage, fill = Group)) +
+  geom_bar(stat = "identity", position="dodge") +
+  scale_y_continuous(breaks = seq(0, 70, by=10), limits = c(0, 70)) +
+  scale_x_discrete(
+    labels = c("Agriculture,\nFisheries\nand Mining", "Manufacturing and\nMechanical\nIndustries", "Domestic and\nPersonal Service", "Professions", "Trade and\nTransportation")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+```
+
+
