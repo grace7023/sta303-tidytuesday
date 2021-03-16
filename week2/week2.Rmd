@@ -1,0 +1,173 @@
+---
+title: "Tidy Tuesday - Week 2"
+author: "Grace Hu"
+date: "15/03/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(ggthemes)
+library(jsonlite)
+```
+
+# Task at hand
+
+For this week, I will be looking at the Bechdel Test data taken from [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-03-09/readme.md). Upon reading the [FiveThirtyEight](https://fivethirtyeight.com/features/the-dollar-and-cents-case-against-hollywoods-exclusion-of-women/) article that inspired this week's data, I wanted to try and recreate two of the plots included in the article: "The Bechdel Test Over Time" and "Median Budget For Films Since 1990".
+
+```{r getdata, include=FALSE, eval=FALSE, message=FALSE}
+
+# Run this to get the data for the first time.
+
+raw_json <- jsonlite::parse_json(url("http://bechdeltest.com/api/v1/getAllMovies"))
+
+all_movies <- raw_json %>% 
+  map_dfr(~as.data.frame(.x, stringsAsFactors = FALSE)) %>% 
+  rename(imdb_id = imdbid) %>% 
+  tibble()
+
+cleaned_bechdel <- all_movies %>% 
+  mutate(title = case_when(
+    str_detect(title, ", The") ~ str_remove(title, ", The") %>% paste("The", .),
+    TRUE ~ str_replace(title, "&#39;", "’")
+  ))
+
+cleaned_bechdel %>% 
+  write_csv("raw_bechdel.csv")
+
+# IMDB data ---------------------------------------------------------------
+
+
+imdb_json <- jsonlite::parse_json(url("https://raw.githubusercontent.com/brianckeegan/Bechdel/master/imdb_data.json"))
+
+all_imdb <- imdb_json %>%
+  map_dfr(~as.data.frame(.x, stringsAsFactors = FALSE))
+
+cleaned_imdb <- all_imdb %>% 
+  janitor::clean_names() %>% 
+  mutate(metascore = parse_number(metascore),
+         imdb_rating = parse_number(imdb_rating),
+         year = as.integer(year)) %>% 
+  mutate(imdb_id = str_remove(imdb_id, "tt")) %>% 
+  tibble()
+
+# 538 Data ----------------------------------------------------------------
+
+movies <- read_csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/bechdel/movies.csv")
+
+cleaned_movies <- movies %>% 
+  mutate(imdb_id = str_remove(imdb, "tt")) 
+
+combo_movies <- cleaned_movies %>% 
+  left_join(cleaned_imdb) %>% 
+  janitor::clean_names()
+
+combo_movies %>% 
+  write_csv("movies.csv")
+```
+
+```{r readData, echo=FALSE, include=FALSE}
+
+raw_movies <- read_csv("movies.csv")
+raw_bechdel <- read_csv("raw_bechdel.csv")
+
+```
+
+# Challenge 01
+
+Recreating "The Bechdel Test Over Time".
+
+## Data Wrangling
+
+```{r ch_01_data_w}
+
+movies <- raw_movies %>%
+  mutate(clean_test = fct_relevel(
+    as_factor(clean_test), c("nowomen", "notalk", "men", "dubious", "ok")
+  ))
+
+movies_acc <- movies %>%
+  mutate(year_acc = as_factor(case_when(
+    year >= 1970 & year < 1975 ~ "1970 - '74",
+    year >= 1975 & year < 1980 ~ "1975 - '79",
+    year >= 1980 & year < 1985 ~ "1980 - '84",
+    year >= 1985 & year < 1990 ~ "1985 - '89",
+    year >= 1990 & year < 1995 ~ "1990 - '94",
+    year >= 1995 & year < 2000 ~ "1995 - '99",
+    year >= 2000 & year < 2005 ~ "2000 - '04",
+    year >= 2005 & year < 2010 ~ "2005 - '09",
+    year >= 2010 & year < 2015 ~ "2010 - '13",
+  ))) %>%
+  mutate(year_acc = fct_relevel(year_acc, levels(year_acc)[9:1]))
+
+```
+
+## Data Visualization
+
+```{r ch_01_data_v}
+
+ggplot(data = movies_acc, aes(x = year_acc, fill = clean_test)) + 
+  geom_bar(position = "fill") +
+  scale_fill_brewer(palette="PiYG") +
+  scale_y_continuous(labels=scales::percent_format()) +
+  labs(
+    title = "The Bechdel Test Over Time",
+    x = "Year",
+    y = "Percentage"
+  ) +
+  theme_minimal() +
+  theme(legend.title=element_blank())
+```
+
+
+# Challenge 02
+
+Recreating "Median Budget For Films Since 1990".
+
+## Data Wrangling 
+
+```{r ch_02_data_w}
+
+budget <- movies %>%
+  filter(year >= 1990) %>%
+  mutate(clean_test = as_factor(case_when(
+    as.character(clean_test) == "dubious" ~ "ok",
+    TRUE ~ as.character(clean_test)
+  ))) %>%
+  mutate(clean_test = fct_rev(fct_relevel(clean_test, "notalk", after=2))) %>%
+  group_by(clean_test) %>%
+  summarise(median_budget = median(budget) / 1000000)
+
+```
+
+## Data Visualization
+
+```{r ch_02_data_v, fig.width=14, fig.height=6}
+
+ggplot(data = budget, aes(x = clean_test, y = median_budget)) +
+  geom_bar(stat = "identity", position="dodge", fill="#0190d4") +
+  geom_text(aes(label=median_budget), hjust=-0.3) +
+  labs(
+    title = "The Bechdel Test Over Time",
+    subtitle="2013 dollars",
+    x = element_blank(),
+    y = element_blank()
+  ) +
+  scale_x_discrete(labels=c(
+    "Fewer than two women",
+    "Women don't talk to each other",
+    "Women only talk about men",
+    "Passes Bechdel Test")) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),
+    text = element_text(size=18)
+  ) +
+  coord_flip()
+
+
+```
