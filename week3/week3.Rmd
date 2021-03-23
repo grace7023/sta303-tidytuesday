@@ -1,0 +1,120 @@
+---
+title: "Tidy Tuesday - Week 3"
+author: "Grace Hu"
+date: "23/03/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(ggthemes)
+```
+
+# Task at hand
+
+For this week, I will be looking at the Bechdel Test data taken from [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-03-09/readme.md). Upon reading the [FiveThirtyEight](https://fivethirtyeight.com/features/the-dollar-and-cents-case-against-hollywoods-exclusion-of-women/) article that inspired this week's data, I wanted to try and recreate two of the plots included in the article: "The Bechdel Test Over Time" and "Median Budget For Films Since 1990".
+
+```{r getdata, include=FALSE, message=FALSE}
+
+# Get the Data
+
+# Read in with tidytuesdayR package 
+# Install from CRAN via: install.packages("tidytuesdayR")
+# This loads the readme and all the datasets for the week of interest
+
+# Either ISO-8601 date or year/week works!
+
+tuesdata <- tidytuesdayR::tt_load('2021-03-16')
+tuesdata <- tidytuesdayR::tt_load(2021, week = 12)
+
+games <- tuesdata$games
+
+# Or read in the data manually
+
+games <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-16/games.csv')
+```
+
+```{r readData, echo=FALSE, include=FALSE}
+
+games_cleaned <- games %>%
+  mutate(date = as.Date(str_c(year, month, "01", sep=" "), "%Y %B %d"))
+
+```
+
+# Challenge 01
+
+Stardew Valley Stats (one of my favourite video games!)
+
+## Data Wrangling
+
+```{r ch_01_data_w}
+
+stardew_data <- games_cleaned %>%
+  filter(gamename == "Stardew Valley")
+
+
+```
+
+## Data Visualization
+
+```{r ch_01.1_data_v}
+
+ggplot(data = stardew_data, aes(x = date, y = avg)) +
+  geom_area(stat = "identity", fill = "#151152", alpha=0.8) +
+  labs(
+    title = "Average number of Stardew Valley players over time",
+    x = "Date",
+    y = "Avg number of players"
+  ) +
+  theme_minimal()
+
+```
+
+# Challenge 02
+
+Top 5 games in 2020 (released before 2020)
+
+## Data Wrangling 
+
+```{r ch_02_data_w}
+
+game_release_date <- games_cleaned %>%
+  filter(is.na(gain)) %>%
+  arrange(date) %>%
+  distinct(gamename, .keep_all = TRUE) %>%
+  mutate(release_date = date) %>%
+  select(gamename, release_date)
+
+top_game_names <- games_cleaned %>%
+  left_join(game_release_date, by="gamename") %>%
+  filter(year == 2020 & release_date <= as.Date("2020-01-01")) %>%
+  group_by(gamename) %>%
+  mutate(avg_2020 = mean(avg)) %>%
+  arrange(-avg) %>%
+  distinct(gamename) %>%
+  head(n=5)
+
+top_games <- games_cleaned %>%
+  filter(year == 2020 & gamename %in% top_game_names$gamename)
+
+```
+
+## Data Visualization
+
+```{r ch_02_data_v, fig.width=14, fig.height=6}
+
+ggplot(data = top_games, aes(x = date, fill = gamename)) +
+  geom_area(aes(y = avg), alpha=0.6) +
+  labs(
+    title = "Top 5 Games in 2020",
+    subtitle="By highest average number of players over the year",
+    x = "Date",
+    y = "Avg number of players"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette="Dark2")
+
+```
