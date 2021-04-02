@@ -15,7 +15,7 @@ library(ggthemes)
 
 # Task at hand
 
-For this week, I will be looking at the Bechdel Test data taken from [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-03-09/readme.md). Upon reading the [FiveThirtyEight](https://fivethirtyeight.com/features/the-dollar-and-cents-case-against-hollywoods-exclusion-of-women/) article that inspired this week's data, I wanted to try and recreate two of the plots included in the article: "The Bechdel Test Over Time" and "Median Budget For Films Since 1990".
+For this week, I will be looking at the Video Game data taken from [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-03-16/readme.md). For the first task, I want to look at the data for my favourite video game, Stardew Valley. For the second task, I want to look at the top 5 games played in 2020 (ignoring missing-ness).
 
 ```{r getdata, include=FALSE, message=FALSE}
 
@@ -28,13 +28,8 @@ For this week, I will be looking at the Bechdel Test data taken from [here](http
 # Either ISO-8601 date or year/week works!
 
 tuesdata <- tidytuesdayR::tt_load('2021-03-16')
-tuesdata <- tidytuesdayR::tt_load(2021, week = 12)
 
 games <- tuesdata$games
-
-# Or read in the data manually
-
-games <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-16/games.csv')
 ```
 
 ```{r readData, echo=FALSE, include=FALSE}
