@@ -3,6 +3,7 @@ title: "Tidy Tuesday - Week 4"
 author: "Grace Hu"
 date: "01/04/2021"
 output: html_document
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
